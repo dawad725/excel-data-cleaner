@@ -34,31 +34,43 @@ const configuration = {
     "hiredate": {
         type: "date",
         cleaners: ["dateFormat"]
+    },
+    "email": {
+        type: "email",
+        cleaners: ["emailFormat"]
     }
 }
 
 const cleaners = {
-    //Transform to a string and lowercase and trim it.
+    //Change to a string and lowercase and trim white spaces.
     "neuter": (v) => {
-        return v.toString().toLowerCase().trim()
+        let string = v.toString().toLowerCase().trim();
+        return string;
     },
     //This function rounds to the nearest tenth place for decimals and removes the comma 
     "toFixed2": (v) => {
-        // return parseFloat(v.toString()).toFixed(2)
-        let noCommas = v.replace(/,/g, '')
-        let floatVal = parseFloat(v)
-        let fixedVal = floatVal.toFixed(2)
-        return fixedVal
+        let noCommas = v.replace(/,/g, '');
+        let floatVal = parseFloat(v);
+        let fixedVal = floatVal.toFixed(2);
+        return fixedVal;
 
     },
     // Extract only numbers from the string and then joins them to form a whole value.
     "numberOnly": (v) => {
-        return parseFloat(v.match(/\d/g).join(''))
+        let number = parseFloat(v.match(/\d/g).join(''));
+        return number;
     },
     // using moment.js to format the date column
     "dateFormat": (v) => {
-        return moment(v).format('LL')
+        let date = moment(v).format('L');
+        return date;
+    },
+
+    "emailFormat": (v) => {
+        let email = v.toString().trim();
+        return email;
     }
+
 }
 
 // Here we are validating the values of the roles 
@@ -79,10 +91,25 @@ const validators = {
             throw new Error(`Invalid integer value, expected only numbers, got: ${v}`)
         }
     },
+    // check for number and only two decimal places
     "decimal": function (v) {
         let valid = /^\s*(?=.*[1-9])\d*(?:\.\d{1,2})?\s*$/
         if (!valid.test(v)) {
             throw new Error(`Invalid decimal value, expected only numbers, got: ${v}`)
+        }
+    },
+
+    "date": function (v) {
+        let valid = /^(0[1-9]|1[0-2])\/(0[1-9]|1\d|2\d|3[01])\/(19|20)\d{2}$/
+        if (!valid.test(v)) {
+            throw new Error(`Invalid date value, expected MM/DD/YYYY, got: ${v}`)
+        }
+    },
+
+    "email": function (v) {
+        let valid = /^(([^<>()\[\]\.,;:\s@\"]+(\.[^<>()\[\]\.,;:\s@\"]+)*)|(\".+\"))@(([^<>()[\]\.,;:\s@\"]+\.)+[^<>()[\]\.,;:\s@\"]{2,})$/i;
+        if (!valid.test(v)) {
+            throw new Error(`Invalid email value, expected name@email.com, got: ${v}`)
         }
     }
 
@@ -100,7 +127,7 @@ if (!uploadedCSVFile || uploadedCSVFile.length < 3) {
 fs.createReadStream(uploadedCSVFile)
     .on('error', () => {
         // handle error
-    })
+    })              // This changes our headers to be lowercased and trimed of white spaces
     .pipe(csv({ mapHeaders: ({ header, index }) => header.toLowerCase().trim() }))
     .on('data', (row) => {
 
@@ -138,9 +165,7 @@ fs.createReadStream(uploadedCSVFile)
             //Now that we're done with the changes, we push changed data to the users array
             users.push(row)
         } catch (e) {
-            // TODO: store the row in errors for later writing to errors.csv
             errors.push(row)
-            console.log("errors Array", errors)
             console.error(e)
         }
 
@@ -155,6 +180,26 @@ fs.createReadStream(uploadedCSVFile)
     });
 
 
+// This function creates the headers we want and extracts the data from the 
+// errors and users arrays to be written in the writeToCSVFile function below
+function extractAsCSV(name) {
+    const headers = ["FirstName", "LastName", "Age ", "Role", "Salary", "Hire Date", "Email"];
+
+    if (name == "errors") {
+
+        const rows = errors.map(error => `${error.firstname}, ${error.lastname}, ${error.age},${error.role}, ${error.salary},${error.hiredate}, ${error.email}`);
+        return `${headers.join(",")}\n${rows.join("\n")}`
+
+    } else {
+
+        const rows = users.map(user => `${user.firstname}, ${user.lastname}, ${user.age},${user.role}, ${user.salary},${user.hiredate}, ${user.email}`);
+        return `${headers.join(",")}\n${rows.join("\n")}`
+
+    }
+
+
+}
+
 // This function creates the new CSV flie based on whats returned from the "extractAsCSV" function.
 function writeToCSVFile(name) {
     const CSVFile = `${name}.csv`;
@@ -167,22 +212,4 @@ function writeToCSVFile(name) {
     });
 };
 
-// This function creates the headers we want and extracts the data from the 
-//errors and users array to be written in the writeToCSVFile function
-function extractAsCSV(name) {
-    const headers = ["FirstName", "LastName", "Age ", "Role", "Salary", "Hire Date"];
 
-    if (name == "errors") {
-
-        const rows = errors.map(error => `${error.firstname}, ${error.lastname}, ${error.age},${error.role}, ${error.salary},${error.hiredate}`);
-        return `${headers.join(",")}\n${rows.join("\n")}`
-
-    } else {
-
-        const rows = users.map(user => `${user.firstname}, ${user.lastname}, ${user.age},${user.role}, ${user.salary},${user.hiredate}`);
-        return `${headers.join(",")}\n${rows.join("\n")}`
-
-    }
-
-
-}

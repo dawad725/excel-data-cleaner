@@ -1,2 +1,4 @@
-FirstName,LastName,Age ,Role,Salary,Hire Date
-jerry, seinfeld, 50,comedian, NaN,10/14/18
+FirstName,LastName,Age ,Role,Salary,Hire Date,Email
+jerry, seinfeld, 50,comedian, NaN,14-Oct-18, js101@aol.com
+elaine, bennis, 50,exec, 717878.87,08/23/1984, eb23@yahoo
+kosmo, kramer, 50,unemployed, 53878.78,Invalid date, kman@gmail.com
