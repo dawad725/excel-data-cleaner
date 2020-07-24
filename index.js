@@ -130,8 +130,7 @@ const validators = {
     },
 
     "email": function (v) {
-
-
+        // check and see if the has the format that we expect below
         let valid = /^(([^<>()\[\]\.,;:\s@\"]+(\.[^<>()\[\]\.,;:\s@\"]+)*)|(\".+\"))@(([^<>()[\]\.,;:\s@\"]+\.)+[^<>()[\]\.,;:\s@\"]{2,})$/i;
         if (!valid.test(v)) {
             throw new EmailError(`Invalid email value, expected name@email.com, got: ${v}`)

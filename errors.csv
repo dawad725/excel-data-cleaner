@@ -1,5 +1,0 @@
-FirstName,LastName,Age ,Role,Salary,Hire Date,Email,Errors
-mel, brooks, 35,financial analyst, 60000.79,02/12/1992, mb22@gmail.com,DuplicateEmailError
-jerry, seinfeld, 50,comedian, NaN,14-Oct-18, js101@aol.com,DecimalError
-elaine, bennis, 50,exec, 717878.87,08/23/1984, eb23@yahoo,EmailError
-kosmo, kramer, 50,unemployed, 53878.78,Invalid date, kman@gmail.com,DateError
