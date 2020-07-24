@@ -3,12 +3,19 @@ const csv = require('csv-parser');
 const moment = require('moment');
 moment.suppressDeprecationWarnings = true;
 
-// const uploadedCSVFile = process.argv[2]; // production
-const uploadedCSVFile = "./test2.csv"; // development
-
+const uploadedCSVFile = process.argv[2]; // production
+// const uploadedCSVFile = "./test.csv"; // development
 
 const users = [];
 const errors = [];
+
+// Make sure we're getting a csv file on the command line in order to proceed.
+// If not lets show the user what the CLI expects and exit the program 
+if (!uploadedCSVFile || uploadedCSVFile.length < 3) {
+    console.log('Usage: npm start ' + '+ ' + ' UPLOADED CSV File');
+    process.exit(1);
+}
+
 
 const configuration = {
     "firstname": {
@@ -65,7 +72,7 @@ const cleaners = {
         let date = moment(v).format('L');
         return date;
     },
-
+    // Make sure our format is a string and we trim the white spaces
     "emailFormat": (v) => {
         let email = v.toString().trim();
         return email;
@@ -73,14 +80,30 @@ const cleaners = {
 
 }
 
+
+class TextError extends Error {
+}
+class EmailError extends Error {
+}
+class DuplicateEmailError extends Error {
+}
+class IntegerError extends Error {
+}
+class DecimalError extends Error {
+}
+class DateError extends Error {
+}
+
 // Here we are validating the values of the roles 
 const validators = {
+
+
     "text": function (v) {
 
         // only letters and spaces
         let valid = /^[a-z][a-z\s]*$/
         if (!valid.test(v)) {
-            throw new Error(`Invalid text value expected only letters, got: ${v}`)
+            throw new TextError(`Invalid text value expected only letters, got: ${v}`)
         }
 
     },
@@ -88,47 +111,58 @@ const validators = {
     "integer": function (v) {
         let valid = /^[1-9]\d*$/
         if (!valid.test(v)) {
-            throw new Error(`Invalid integer value, expected only numbers, got: ${v}`)
+            throw new IntegerError(`Invalid integer value, expected only numbers, got: ${v}`)
         }
     },
     // check for number and only two decimal places
     "decimal": function (v) {
         let valid = /^\s*(?=.*[1-9])\d*(?:\.\d{1,2})?\s*$/
         if (!valid.test(v)) {
-            throw new Error(`Invalid decimal value, expected only numbers, got: ${v}`)
+            throw new DecimalError(`Invalid decimal value, expected only numbers, got: ${v}`)
         }
     },
-
+    // checks our date against the valid regex 
     "date": function (v) {
         let valid = /^(0[1-9]|1[0-2])\/(0[1-9]|1\d|2\d|3[01])\/(19|20)\d{2}$/
         if (!valid.test(v)) {
-            throw new Error(`Invalid date value, expected MM/DD/YYYY, got: ${v}`)
+            throw new DateError(`Invalid date value, expected MM/DD/YYYY, got: ${v}`)
         }
     },
 
     "email": function (v) {
+
+
         let valid = /^(([^<>()\[\]\.,;:\s@\"]+(\.[^<>()\[\]\.,;:\s@\"]+)*)|(\".+\"))@(([^<>()[\]\.,;:\s@\"]+\.)+[^<>()[\]\.,;:\s@\"]{2,})$/i;
         if (!valid.test(v)) {
-            throw new Error(`Invalid email value, expected name@email.com, got: ${v}`)
+            throw new EmailError(`Invalid email value, expected name@email.com, got: ${v}`)
         }
-    }
+
+        //check to see if we already have an email in our unique_emails object
+        if (validators["unique_emails"].hasOwnProperty(v)) {
+            throw new DuplicateEmailError(`Duplicate email value at : ${v}`)
+        } else {
+            // if not we'll set that email to true 
+            validators["unique_emails"][v] = true
+        }
+
+
+    },
+
+    "unique_emails": {},
 
 }
 
 
-// Make sure we're getting a csv file on the command line in order to proceed.
-// If not lets show the user what the CLI expects and exit the program 
-if (!uploadedCSVFile || uploadedCSVFile.length < 3) {
-    console.log('Usage: node ' + '+ ' + process.argv[1] + ' +' + ' UPLOADED CSV File');
-    process.exit(1);
-}
 
 
 fs.createReadStream(uploadedCSVFile)
     .on('error', () => {
         // handle error
-    })              // This changes our headers to be lowercased and trimed of white spaces
-    .pipe(csv({ mapHeaders: ({ header, index }) => header.toLowerCase().trim() }))
+    })
+    .pipe(csv(
+        // this formats the headers of the excel sheet to lowercase and removes the white spaces
+        { mapHeaders: ({ header, index }) => header.toLowerCase().trim() }
+    ))
     .on('data', (row) => {
 
 
@@ -156,7 +190,6 @@ fs.createReadStream(uploadedCSVFile)
                         validators[columnConfig.type](value)
                     }
 
-
                 } else {
 
                     throw new Error(`Configuration for column "${fieldName}" not found.`)
@@ -165,8 +198,9 @@ fs.createReadStream(uploadedCSVFile)
             //Now that we're done with the changes, we push changed data to the users array
             users.push(row)
         } catch (e) {
+            // This will add the type of column; which can be tracked back to the validator in question
+            row["reason"] = e.constructor.name
             errors.push(row)
-            console.error(e)
         }
 
 
@@ -180,18 +214,18 @@ fs.createReadStream(uploadedCSVFile)
     });
 
 
-// This function creates the headers we want and extracts the data from the 
-// errors and users arrays to be written in the writeToCSVFile function below
+// This function creates the headers we want in the new csv files and extracts the data 
+// from the "errors" and "users" arrays to be written in the writeToCSVFile function below
 function extractAsCSV(name) {
-    const headers = ["FirstName", "LastName", "Age ", "Role", "Salary", "Hire Date", "Email"];
+
 
     if (name == "errors") {
-
-        const rows = errors.map(error => `${error.firstname}, ${error.lastname}, ${error.age},${error.role}, ${error.salary},${error.hiredate}, ${error.email}`);
+        const headers = ["FirstName", "LastName", "Age ", "Role", "Salary", "Hire Date", "Email", "Errors"];
+        const rows = errors.map(error => `${error.firstname}, ${error.lastname}, ${error.age},${error.role}, ${error.salary},${error.hiredate}, ${error.email},${error.reason}`);
         return `${headers.join(",")}\n${rows.join("\n")}`
 
     } else {
-
+        const headers = ["FirstName", "LastName", "Age ", "Role", "Salary", "Hire Date", "Email"];
         const rows = users.map(user => `${user.firstname}, ${user.lastname}, ${user.age},${user.role}, ${user.salary},${user.hiredate}, ${user.email}`);
         return `${headers.join(",")}\n${rows.join("\n")}`
 
