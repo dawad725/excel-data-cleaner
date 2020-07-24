@@ -72,18 +72,25 @@ const validators = {
         }
 
     },
+    //only a number 
     "integer": function (v) {
         let valid = /^[1-9]\d*$/
         if (!valid.test(v)) {
             throw new Error(`Invalid integer value, expected only numbers, got: ${v}`)
+        }
+    },
+    "decimal": function (v) {
+        let valid = /^\s*(?=.*[1-9])\d*(?:\.\d{1,2})?\s*$/
+        if (!valid.test(v)) {
+            throw new Error(`Invalid decimal value, expected only numbers, got: ${v}`)
         }
     }
 
 }
 
 
-// Make sure we getting a csv file on the command line in order to proceed.
-// If not lets show the user what the CLI expects and exit 
+// Make sure we're getting a csv file on the command line in order to proceed.
+// If not lets show the user what the CLI expects and exit the program 
 if (!uploadedCSVFile || uploadedCSVFile.length < 3) {
     console.log('Usage: node ' + '+ ' + process.argv[1] + ' +' + ' UPLOADED CSV File');
     process.exit(1);
@@ -105,7 +112,7 @@ fs.createReadStream(uploadedCSVFile)
                 let value = row[fieldName];
                 if (columnConfig) {
                     //If there are cleaners setup for this column type, then lets 
-                    //loop through the cleaners and assign it to our value 
+                    //loop through the cleaners to make changes and re-assign it to value variable  
                     if (columnConfig.cleaners) {
                         columnConfig.cleaners.forEach(clean => {
                             value = cleaners[clean](value)
@@ -118,13 +125,14 @@ fs.createReadStream(uploadedCSVFile)
                     //Here we're checking to see if there is a validator set up for this type 
                     if (validators[columnConfig.type]) {
 
-                        // If so, lets make sure we're getting what we expect based on the type 
+                        // If so, lets make sure we're getting what we expect based on the type before adding the value to the users array 
                         validators[columnConfig.type](value)
                     }
 
 
                 } else {
-                    console.log(`Configuration for ${fieldName} not found.`)
+
+                    throw new Error(`Configuration for column "${fieldName}" not found.`)
                 }
             })
             //Now that we're done with the changes, we push changed data to the users array
@@ -149,20 +157,32 @@ fs.createReadStream(uploadedCSVFile)
 
 // This function creates the new CSV flie based on whats returned from the "extractAsCSV" function.
 function writeToCSVFile(name) {
-    const cleanedCSVFile = `${name}.csv`;
-    fs.writeFile(cleanedCSVFile, extractAsCSV(users), err => {
+    const CSVFile = `${name}.csv`;
+    fs.writeFile(CSVFile, extractAsCSV(name), err => {
         if (err) {
             console.log("Error writing to csv file", err);
         } else {
-            console.log(`Saved as "${cleanedCSVFile}" within this directory`)
+            console.log(`Saved as "${CSVFile}" within this directory`)
         }
     });
 };
 
-// This function creates the headers we want and iterates through the values to create the rows of data
-function extractAsCSV(users) {
+// This function creates the headers we want and extracts the data from the 
+//errors and users array to be written in the writeToCSVFile function
+function extractAsCSV(name) {
     const headers = ["FirstName", "LastName", "Age ", "Role", "Salary", "Hire Date"];
 
-    const rows = users.map(user => `${user.firstname}, ${user.lastname}, ${user.age},${user.role}, ${user.salary},${user.hiredate}`);
-    return `${headers.join(",")}\n${rows.join("\n")}`
+    if (name == "errors") {
+
+        const rows = errors.map(error => `${error.firstname}, ${error.lastname}, ${error.age},${error.role}, ${error.salary},${error.hiredate}`);
+        return `${headers.join(",")}\n${rows.join("\n")}`
+
+    } else {
+
+        const rows = users.map(user => `${user.firstname}, ${user.lastname}, ${user.age},${user.role}, ${user.salary},${user.hiredate}`);
+        return `${headers.join(",")}\n${rows.join("\n")}`
+
+    }
+
+
 }
