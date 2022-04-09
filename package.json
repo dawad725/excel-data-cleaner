@@ -11,6 +11,6 @@
   "license": "ISC",
   "dependencies": {
     "csv-parser": "^2.3.3",
-    "moment": "^2.27.0"
+    "moment": "^2.29.2"
   }
 }
