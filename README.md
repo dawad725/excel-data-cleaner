@@ -5,7 +5,7 @@ Here is a simple command line interface application to clean payroll excel data.
 ## General info
 
 In the root directory is a "test.csv" file. You will need this to run the application. 
-After the application runs you will see two tables printed in your terminal. One for your rows that have "errors" and the other for your "cleanned" data. You will also see two new CSV files created in the root directory, one called "errors.csv" and the other "cleaned.csv". Your errors file will include what rows were excluded from the cleaned file and what kind of errors we encountered throughout the process. 
+After the application runs you will see two tables printed in your terminal. One for your rows that have "errors" and the other for your "cleaned" data. You will also see two new CSV files created in the root directory, one called "errors.csv" and the other "cleaned.csv". Your errors file will include what rows were excluded from the cleaned file and what kind of errors we encountered throughout the process. 
 
 
 ## Setup 
